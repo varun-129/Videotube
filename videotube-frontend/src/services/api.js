@@ -6,7 +6,7 @@ const api = axios.create({
   timeout: 15000,
 })
 
-// ── Request interceptor: attach access token ─────────────
+// ── Request interceptor ───────────────────────────────────
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken')
@@ -18,7 +18,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// ── Response interceptor: auto-refresh token ─────────────
+// ── Response interceptor ──────────────────────────────────
 let isRefreshing = false
 let failedQueue = []
 
@@ -36,6 +36,20 @@ api.interceptors.response.use(
     const originalRequest = error.config
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+
+      // ✅ Skip refresh for these routes — just reject silently
+      const skipRefreshUrls = [
+        '/users/current-user',
+        '/users/login',
+        '/users/refresh-token',
+      ]
+      const isSkipUrl = skipRefreshUrls.some(url =>
+        originalRequest.url?.includes(url)
+      )
+      if (isSkipUrl) {
+        return Promise.reject(error)
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
@@ -64,7 +78,15 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null)
         localStorage.removeItem('accessToken')
-        window.location.href = '/login'
+
+        // ✅ Only redirect if not already on auth pages
+        if (
+          !window.location.pathname.includes('/login') &&
+          !window.location.pathname.includes('/register')
+        ) {
+          window.location.href = '/login'
+        }
+
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
