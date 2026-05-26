@@ -118,3 +118,19 @@ dist
 .pnp.*
 
 # End of https://mrkandreev.name/snippets/gitignore-generator/#Node
+
+# Frontend
+videotube-frontend/node_modules/
+videotube-frontend/dist/
+videotube-frontend/.env.production
+
+# Temp uploads
+public/temp/*
+!public/temp/.gitkeep
+
+# Mac
+.DS_Store
+
+.env
+env
+.DS_Store
