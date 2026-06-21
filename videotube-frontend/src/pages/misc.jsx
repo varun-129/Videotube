@@ -1,5 +1,6 @@
 // ── Liked Videos ────────────────────────────────────────────
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { likeService } from '../services'
 import VideoCard from '../components/video/VideoCard'
 import { getApiError } from '../utils/helpers'
@@ -75,6 +76,7 @@ export function Playlists() {
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState({ name: '', description: '' })
+  const [activePlaylist, setActivePlaylist] = useState(null)
 
   useEffect(() => {
     if (user?._id) {
@@ -130,7 +132,7 @@ export function Playlists() {
       ) : (
         <div className="video-grid">
           {playlists.map((pl) => (
-            <div key={pl._id} className="card playlist-card fade-up">
+            <div key={pl._id} className="card playlist-card fade-up" onClick={() => setActivePlaylist(pl)}>
               <div className="playlist-thumb-wrap">
                 {pl.videos?.[0]?.thumbnail
                   ? <img src={pl.videos[0].thumbnail} alt="" className="playlist-thumb" />
@@ -144,6 +146,80 @@ export function Playlists() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {activePlaylist && (
+        <div className="modal-overlay" onClick={() => setActivePlaylist(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 640 }}>
+            <div className="modal-header">
+              <h2 className="modal-title">{activePlaylist.name}</h2>
+              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setActivePlaylist(null)}>✕</button>
+            </div>
+            {activePlaylist.description && (
+              <p className="text-dim" style={{ fontSize: 14, marginBottom: 16, marginTop: -12 }}>{activePlaylist.description}</p>
+            )}
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
+              {activePlaylist.videos && activePlaylist.videos.length > 0 ? (
+                activePlaylist.videos.map((vid) => (
+                  <div key={vid._id} className="playlist-video-item flex gap-3" style={{ padding: 8, borderRadius: 'var(--radius)', background: 'var(--bg-2)', transition: 'var(--transition)', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Link to={`/watch/${vid._id}`} className="flex gap-3 w-full" style={{ minWidth: 0 }} onClick={() => setActivePlaylist(null)}>
+                      <div style={{ position: 'relative', width: 120, aspectRatio: '16/9', borderRadius: 'var(--radius-sm)', overflow: 'hidden', flexShrink: 0 }}>
+                        <img src={vid.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, justifyContent: 'center' }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-0)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {vid.title}
+                        </div>
+                        <div className="text-dim" style={{ fontSize: 12 }}>@{vid.owner?.username || vid.owner}</div>
+                      </div>
+                    </Link>
+                    <button 
+                      className="btn btn-ghost btn-icon btn-sm" 
+                      style={{ color: 'var(--red)', flexShrink: 0 }}
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        try {
+                          await playlistService.removeVideoFromPlaylist(activePlaylist._id, vid._id)
+                          toast.success('Video removed from playlist')
+                          
+                          // Update active playlist state locally
+                          const updatedVideos = activePlaylist.videos.filter(v => v._id !== vid._id)
+                          setActivePlaylist(prev => ({
+                            ...prev,
+                            videos: updatedVideos,
+                            totalVideos: updatedVideos.length
+                          }))
+                          
+                          // Update playlists list page state locally
+                          setPlaylists(prevList => prevList.map(pl => {
+                            if (pl._id === activePlaylist._id) {
+                              return {
+                                ...pl,
+                                videos: updatedVideos,
+                                totalVideos: updatedVideos.length
+                              }
+                            }
+                            return pl
+                          }))
+                        } catch (err) {
+                          toast.error(getApiError(err))
+                        }
+                      }}
+                      title="Remove from playlist"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-state" style={{ padding: '24px 0' }}>
+                  <p>No videos in this playlist yet.</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

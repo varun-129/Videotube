@@ -10,7 +10,7 @@
   gap: 12px;
   align-items: flex-start;
 }
-.comment-input-wrap { flex: 1; }
+.comment-input-wrap { flex: 1; min-width: 0; }
 .comment-input { border-radius: var(--radius) !important; }
 
 .comment-list { display: flex; flex-direction: column; gap: 0; }

@@ -81,3 +81,41 @@
 .about-grid { display: grid; gap: 14px; }
 .about-grid > div { display: flex; flex-direction: column; gap: 4px; }
 .about-grid .label { color: var(--text-2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+@media (max-width: 600px) {
+  .channel-cover {
+    height: 140px;
+  }
+  .channel-info {
+    padding: 0 16px 16px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .channel-identity {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+  }
+  .channel-avatar {
+    width: 80px;
+    height: 80px;
+    margin-top: -30px;
+  }
+  .channel-name {
+    font-size: 20px;
+  }
+  .channel-actions {
+    width: 100%;
+  }
+  .channel-actions .btn {
+    width: 100%;
+  }
+  .channel-tabs-wrap {
+    padding: 0 16px;
+  }
+  .channel-content {
+    padding: 16px;
+  }
+}

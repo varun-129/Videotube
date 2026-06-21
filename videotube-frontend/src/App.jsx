@@ -49,6 +49,8 @@ export default function App() {
         overflowY: 'auto',
         minHeight: 0,
         background: 'var(--bg-0)',
+        width: '100%',
+        minWidth: 0,
       }}>
         <Routes>
           {/* Public */}
