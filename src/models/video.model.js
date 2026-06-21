@@ -35,6 +35,11 @@ const videoSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "User",
         },
+        tag: {
+            type: String,
+            default: "Gaming",
+            trim: true
+        },
     },
     {
         timestamps: true,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   FiThumbsUp, FiShare2, FiBookmark, FiMoreHorizontal,
   FiEye, FiCalendar, FiBell
@@ -12,8 +12,30 @@ import { formatViews, formatDuration, timeAgo, getApiError } from '../utils/help
 import toast from 'react-hot-toast'
 import './Watch.css'
 
+function AuthPopover({ message, onClose }) {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose()
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [onClose])
+
+  return (
+    <div className="auth-popover">
+      <button className="auth-popover-close" onClick={onClose}>✕</button>
+      <p className="auth-popover-text">{message}</p>
+      <button className="btn btn-primary btn-sm" onClick={() => navigate('/login')} style={{ width: '100%' }}>
+        Sign In
+      </button>
+    </div>
+  )
+}
+
 export default function Watch() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { user, isAuthenticated } = useAuthStore()
   const [video, setVideo] = useState(null)
   const [related, setRelated] = useState([])
@@ -23,6 +45,8 @@ export default function Watch() {
   const [subscribed, setSubscribed] = useState(false)
   const [subCount, setSubCount] = useState(0)
   const [descExpanded, setDescExpanded] = useState(false)
+  const [showLikePopover, setShowLikePopover] = useState(false)
+  const [showSubPopover, setShowSubPopover] = useState(false)
 
   useEffect(() => {
     loadVideo()
@@ -51,7 +75,10 @@ export default function Watch() {
   }
 
   const handleLike = async () => {
-    if (!isAuthenticated) return toast.error('Sign in to like')
+    if (!isAuthenticated) {
+      setShowLikePopover(true)
+      return
+    }
     const prev = liked
     setLiked(!prev)
     setLikesCount((p) => prev ? p - 1 : p + 1)
@@ -64,7 +91,10 @@ export default function Watch() {
   }
 
   const handleSubscribe = async () => {
-    if (!isAuthenticated) return toast.error('Sign in to subscribe')
+    if (!isAuthenticated) {
+      setShowSubPopover(true)
+      return
+    }
     const prev = subscribed
     setSubscribed(!prev)
     setSubCount((p) => prev ? p - 1 : p + 1)
@@ -130,13 +160,21 @@ export default function Watch() {
           </div>
 
           <div className="watch-actions flex gap-2">
-            <button
-              className={`action-btn ${liked ? 'active' : ''}`}
-              onClick={handleLike}
-            >
-              <FiThumbsUp size={16} fill={liked ? 'currentColor' : 'none'} />
-              <span>{formatViews(likesCount)}</span>
-            </button>
+            <div className="auth-popover-wrapper">
+              <button
+                className={`action-btn ${liked ? 'active' : ''}`}
+                onClick={handleLike}
+              >
+                <FiThumbsUp size={16} fill={liked ? 'currentColor' : 'none'} />
+                <span>{formatViews(likesCount)}</span>
+              </button>
+              {showLikePopover && (
+                <AuthPopover 
+                  message="Sign in to like this video." 
+                  onClose={() => setShowLikePopover(false)} 
+                />
+              )}
+            </div>
             <button className="action-btn" onClick={handleShare}>
               <FiShare2 size={16} /> Share
             </button>
@@ -161,12 +199,20 @@ export default function Watch() {
           </Link>
 
           {user?._id !== video.owner?._id && (
-            <button
-              className={`btn ${subscribed ? 'btn-secondary subscribed' : 'btn-primary'}`}
-              onClick={handleSubscribe}
-            >
-              {subscribed ? <><FiBell size={14} /> Subscribed</> : 'Subscribe'}
-            </button>
+            <div className="auth-popover-wrapper">
+              <button
+                className={`btn ${subscribed ? 'btn-secondary subscribed' : 'btn-primary'}`}
+                onClick={handleSubscribe}
+              >
+                {subscribed ? <><FiBell size={14} /> Subscribed</> : 'Subscribe'}
+              </button>
+              {showSubPopover && (
+                <AuthPopover 
+                  message="Sign in to subscribe." 
+                  onClose={() => setShowSubPopover(false)} 
+                />
+              )}
+            </div>
           )}
         </div>
 

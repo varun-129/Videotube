@@ -22,7 +22,7 @@ export default function Home() {
     setLoading(true)
     try {
       const params = { page: p, limit: 12, sortBy: 'createdAt', sortType: 'desc' }
-      if (category !== 'All') params.query = category
+      if (category !== 'All') params.tag = category
       const { data } = await videoService.getAllVideos(params)
       const docs = data.data.docs || []
       setVideos((prev) => reset ? docs : [...prev, ...docs])

@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiMail, FiLock, FiUser, FiAtSign, FiCamera } from 'react-icons/fi'
-import { authService } from '../services'
+import useAuthStore from '../store/authStore'
 import { getApiError } from '../utils/helpers'
 import toast from 'react-hot-toast'
 import './Auth.css'
 
 export default function Register() {
+  const { register } = useAuthStore()
   const navigate = useNavigate()
   const [form, setForm] = useState({ fullName: '', username: '', email: '', password: '' })
   const [avatar, setAvatar] = useState(null)
@@ -35,16 +36,26 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!avatar) return toast.error('Avatar is required')
+    const trimmedEmail = form.email.trim()
+    const trimmedUsername = form.username.trim()
+    const trimmedFullName = form.fullName.trim()
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(trimmedEmail)) {
+      return toast.error('Please enter a valid email address')
+    }
     setLoading(true)
     try {
       const fd = new FormData()
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v))
-      fd.append('avatar', avatar)
+      fd.append('fullName', trimmedFullName)
+      fd.append('username', trimmedUsername)
+      fd.append('email', trimmedEmail)
+      fd.append('password', form.password)
+      if (avatar) fd.append('avatar', avatar)
       if (coverImage) fd.append('coverImage', coverImage)
-      await authService.register(fd)
-      toast.success('Account created! Please sign in.')
-      navigate('/login')
+      await register(fd)
+      toast.success('Welcome to VideoTube!')
+      navigate('/')
     } catch (err) {
       toast.error(getApiError(err))
     } finally {
@@ -68,7 +79,7 @@ export default function Register() {
           <div className="cover-upload-wrap" onClick={() => coverRef.current.click()}>
             {coverPreview
               ? <img src={coverPreview} alt="" className="cover-preview" />
-              : <div className="cover-placeholder"><FiCamera size={20} className="text-dim" /><span className="text-dim" style={{ fontSize: 12 }}>Add cover image</span></div>
+              : <div className="cover-placeholder"><FiCamera size={20} className="text-dim" /><span className="text-dim" style={{ fontSize: 12 }}>Add cover image (optional)</span></div>
             }
             <input ref={coverRef} type="file" accept="image/*" hidden onChange={handleCover} />
           </div>
@@ -83,7 +94,7 @@ export default function Register() {
               <input ref={avatarRef} type="file" accept="image/*" hidden onChange={handleAvatar} />
             </div>
             <span className="text-dim" style={{ fontSize: 13 }}>
-              {avatarPreview ? 'Click to change avatar' : 'Upload avatar *'}
+              {avatarPreview ? 'Click to change avatar' : 'Upload avatar (optional)'}
             </span>
           </div>
 
@@ -106,7 +117,7 @@ export default function Register() {
               <label className="label">Email</label>
               <div className="input-wrap input-icon-left">
                 <FiMail className="icon" size={15} />
-                <input className="input" type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} required />
+                <input className="input" type="text" placeholder="you@example.com" value={form.email} onChange={set('email')} required />
               </div>
             </div>
             <div>

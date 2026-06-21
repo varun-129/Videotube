@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FiSend, FiEdit2, FiTrash2, FiHeart } from 'react-icons/fi'
 import { commentService, likeService } from '../../services'
 import useAuthStore from '../../store/authStore'
@@ -6,16 +7,43 @@ import { timeAgo, getApiError } from '../../utils/helpers'
 import toast from 'react-hot-toast'
 import './CommentSection.css'
 
+function AuthPopover({ message, onClose }) {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose()
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [onClose])
+
+  return (
+    <div className="auth-popover">
+      <button className="auth-popover-close" onClick={onClose}>✕</button>
+      <p className="auth-popover-text">{message}</p>
+      <button className="btn btn-primary btn-sm" onClick={() => navigate('/login')} style={{ width: '100%' }}>
+        Sign In
+      </button>
+    </div>
+  )
+}
+
 function CommentItem({ comment, onDelete, onUpdate }) {
-  const { user } = useAuthStore()
+  const { user, isAuthenticated } = useAuthStore()
+  const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState(comment.content)
   const [liked, setLiked] = useState(comment.isLikedByUser)
   const [likesCount, setLikesCount] = useState(comment.likesCount || 0)
+  const [showLikePopover, setShowLikePopover] = useState(false)
 
   const isOwner = user?._id === comment.owner?._id
 
   const handleLike = async () => {
+    if (!isAuthenticated) {
+      setShowLikePopover(true)
+      return
+    }
     try {
       setLiked((p) => !p)
       setLikesCount((p) => liked ? p - 1 : p + 1)
@@ -67,10 +95,18 @@ function CommentItem({ comment, onDelete, onUpdate }) {
           <p className="comment-text">{comment.content}</p>
         )}
         <div className="comment-actions">
-          <button className={`comment-like-btn ${liked ? 'liked' : ''}`} onClick={handleLike}>
-            <FiHeart size={13} fill={liked ? 'currentColor' : 'none'} />
-            <span>{likesCount}</span>
-          </button>
+          <div className="auth-popover-wrapper">
+            <button className={`comment-like-btn ${liked ? 'liked' : ''}`} onClick={handleLike}>
+              <FiHeart size={13} fill={liked ? 'currentColor' : 'none'} />
+              <span>{likesCount}</span>
+            </button>
+            {showLikePopover && (
+              <AuthPopover
+                message="Sign in to Like this video."
+                onClose={() => setShowLikePopover(false)}
+              />
+            )}
+          </div>
           {isOwner && !editing && (
             <>
               <button className="comment-action-btn" onClick={() => setEditing(true)}><FiEdit2 size={13} /></button>
@@ -85,6 +121,7 @@ function CommentItem({ comment, onDelete, onUpdate }) {
 
 export default function CommentSection({ videoId }) {
   const { user, isAuthenticated } = useAuthStore()
+  const navigate = useNavigate()
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
   const [newComment, setNewComment] = useState('')
@@ -92,6 +129,7 @@ export default function CommentSection({ videoId }) {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
   const [totalDocs, setTotalDocs] = useState(0)
+  const [showCommentPopover, setShowCommentPopover] = useState(false)
 
   useEffect(() => {
     fetchComments(1, true)
@@ -112,6 +150,10 @@ export default function CommentSection({ videoId }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!isAuthenticated) {
+      setShowCommentPopover(true)
+      return
+    }
     if (!newComment.trim()) return
     setSubmitting(true)
     try {
@@ -136,28 +178,38 @@ export default function CommentSection({ videoId }) {
     <div className="comment-section">
       <h3 className="comment-heading display">{totalDocs} COMMENTS</h3>
 
-      {isAuthenticated && (
-        <form className="comment-form" onSubmit={handleSubmit}>
+      <form className="comment-form" onSubmit={handleSubmit}>
+        {isAuthenticated ? (
           <img src={user?.avatar} alt="" className="avatar avatar-sm" style={{ flexShrink: 0 }} />
-          <div className="comment-input-wrap">
-            <textarea
-              className="input comment-input"
-              placeholder="Add a comment…"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              rows={2}
-            />
-            {newComment.trim() && (
-              <div className="flex gap-2" style={{ justifyContent: 'flex-end', marginTop: 8 }}>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setNewComment('')}>Cancel</button>
+        ) : (
+          <div className="avatar avatar-sm" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-2)', fontSize: 14 }}>👤</div>
+        )}
+        <div className="comment-input-wrap">
+          <textarea
+            className="input comment-input"
+            placeholder="Add a comment…"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            rows={2}
+          />
+          {newComment.trim() && (
+            <div className="flex gap-2" style={{ justifyContent: 'flex-end', marginTop: 8 }}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setNewComment('')}>Cancel</button>
+              <div className="auth-popover-wrapper">
                 <button type="submit" className="btn btn-primary btn-sm" disabled={submitting}>
                   <FiSend size={13} /> {submitting ? 'Posting…' : 'Comment'}
                 </button>
+                {showCommentPopover && (
+                  <AuthPopover
+                    message="Sign in to comment."
+                    onClose={() => setShowCommentPopover(false)}
+                  />
+                )}
               </div>
-            )}
-          </div>
-        </form>
-      )}
+            </div>
+          )}
+        </div>
+      </form>
 
       <div className="comment-list">
         {loading && comments.length === 0 ? (

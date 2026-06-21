@@ -38,7 +38,7 @@ export const videoService = {
 
   getVideoById: (id) => api.get(`/videos/${id}`),
 
-  publishVideo: (formData) => api.post('/videos', formData),
+  publishVideo: (formData, config) => api.post('/videos', formData, config),
 
   updateVideo: (id, formData) => api.patch(`/videos/${id}`, formData),
 

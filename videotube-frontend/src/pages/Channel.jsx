@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { FiBell, FiGrid, FiTwitter, FiList, FiUsers } from 'react-icons/fi'
 import { authService, subscriptionService, tweetService, videoService } from '../services'
 import useAuthStore from '../store/authStore'
@@ -15,8 +15,30 @@ const TABS = [
   { id: 'about', label: 'About', icon: FiUsers },
 ]
 
+function AuthPopover({ message, onClose }) {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose()
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [onClose])
+
+  return (
+    <div className="auth-popover">
+      <button className="auth-popover-close" onClick={onClose}>✕</button>
+      <p className="auth-popover-text">{message}</p>
+      <button className="btn btn-primary btn-sm" onClick={() => navigate('/login')} style={{ width: '100%' }}>
+        Sign In
+      </button>
+    </div>
+  )
+}
+
 export default function Channel() {
   const { username } = useParams()
+  const navigate = useNavigate()
   const { user: me, isAuthenticated } = useAuthStore()
   const [channel, setChannel] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -25,6 +47,7 @@ export default function Channel() {
   const [tweets, setTweets] = useState([])
   const [subscribed, setSubscribed] = useState(false)
   const [subCount, setSubCount] = useState(0)
+  const [showSubPopover, setShowSubPopover] = useState(false)
 
   useEffect(() => {
     loadChannel()
@@ -53,18 +76,21 @@ export default function Channel() {
     try {
       const { data } = await videoService.getAllVideos({ userId: channel._id, limit: 20 })
       setVideos(data.data.docs || [])
-    } catch {}
+    } catch { }
   }
 
   const loadTweets = async () => {
     try {
       const { data } = await tweetService.getUserTweets(channel._id)
       setTweets(data.data || [])
-    } catch {}
+    } catch { }
   }
 
   const handleSubscribe = async () => {
-    if (!isAuthenticated) return toast.error('Sign in to subscribe')
+    if (!isAuthenticated) {
+      setShowSubPopover(true)
+      return
+    }
     const prev = subscribed
     setSubscribed(!prev)
     setSubCount((p) => prev ? p - 1 : p + 1)
@@ -126,12 +152,20 @@ export default function Channel() {
 
         <div className="channel-actions">
           {!isOwner && (
-            <button
-              className={`btn ${subscribed ? 'btn-secondary' : 'btn-primary'}`}
-              onClick={handleSubscribe}
-            >
-              {subscribed ? <><FiBell size={14} /> Subscribed</> : 'Subscribe'}
-            </button>
+            <div className="auth-popover-wrapper">
+              <button
+                className={`btn ${subscribed ? 'btn-secondary' : 'btn-primary'}`}
+                onClick={handleSubscribe}
+              >
+                {subscribed ? <><FiBell size={14} /> Subscribed</> : 'Subscribe'}
+              </button>
+              {showSubPopover && (
+                <AuthPopover
+                  message="Sign in to subscribe."
+                  onClose={() => setShowSubPopover(false)}
+                />
+              )}
+            </div>
           )}
         </div>
       </div>

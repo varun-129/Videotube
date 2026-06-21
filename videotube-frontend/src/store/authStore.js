@@ -23,6 +23,13 @@ const useAuthStore = create((set, get) => ({
     return data
   },
 
+  register: async (formData) => {
+    const { data } = await authService.register(formData)
+    set({ user: data.data.user, isAuthenticated: true })
+    localStorage.setItem('accessToken', data.data.accessToken)
+    return data
+  },
+
   logout: async () => {
     await authService.logout()
     set({ user: null, isAuthenticated: false })

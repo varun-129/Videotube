@@ -9,7 +9,7 @@ export default function UploadModal({ onClose }) {
   const [videoFile, setVideoFile] = useState(null)
   const [thumbnail, setThumbnail] = useState(null)
   const [thumbnailPreview, setThumbnailPreview] = useState(null)
-  const [form, setForm] = useState({ title: '', description: '' })
+  const [form, setForm] = useState({ title: '', description: '', tag: '' })
   const [progress, setProgress] = useState(0)
   const videoRef = useRef()
   const thumbRef = useRef()
@@ -31,14 +31,18 @@ export default function UploadModal({ onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!videoFile || !thumbnail) return toast.error('Video and thumbnail required')
+    if (!videoFile) return toast.error('Video file required')
     if (!form.title.trim()) return toast.error('Title required')
+    if (!form.tag) return toast.error('Category is required')
     setStep(3)
     const fd = new FormData()
     fd.append('videoFile', videoFile)
-    fd.append('thumbnail', thumbnail)
+    if (thumbnail) {
+      fd.append('thumbnail', thumbnail)
+    }
     fd.append('title', form.title)
     fd.append('description', form.description)
+    fd.append('tag', form.tag)
     try {
       await videoService.publishVideo(fd, {
         onUploadProgress: (e) => setProgress(Math.round((e.loaded * 100) / e.total)),
@@ -81,7 +85,7 @@ export default function UploadModal({ onClose }) {
                 : (
                   <div className="thumb-placeholder">
                     <FiImage size={28} className="text-dim" />
-                    <span className="text-dim" style={{ fontSize: 13 }}>Select thumbnail</span>
+                    <span className="text-dim" style={{ fontSize: 13 }}>Select thumbnail (optional)</span>
                   </div>
                 )
               }
@@ -109,12 +113,32 @@ export default function UploadModal({ onClose }) {
                   rows={3}
                 />
               </div>
+              <div>
+                <label className="label">Category / Tag *</label>
+                <select
+                  className="input"
+                  value={form.tag}
+                  onChange={(e) => setForm((f) => ({ ...f, tag: e.target.value }))}
+                  required
+                  style={{ background: '#0f0f0f', color: '#fff', border: '1px solid #272727', padding: '10px 12px', borderRadius: '6px', width: '100%', outline: 'none' }}
+                >
+                  <option value="">Select</option>
+                  <option value="Gaming">Gaming</option>
+                  <option value="Music">Music</option>
+                  <option value="Sports">Sports</option>
+                  <option value="Tech">Tech</option>
+                  <option value="Travel">Travel</option>
+                  <option value="Food">Food</option>
+                  <option value="Education">Education</option>
+                  <option value="Comedy">Comedy</option>
+                </select>
+              </div>
               <div className="upload-file-name text-dim mono" style={{ fontSize: 12 }}>
                 📹 {videoFile?.name}
               </div>
               <div className="flex gap-2" style={{ justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={!thumbnail}>Publish</button>
+                <button type="submit" className="btn btn-primary">Publish</button>
               </div>
             </div>
           </form>
