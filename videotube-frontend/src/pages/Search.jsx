@@ -11,6 +11,7 @@ export default function Search() {
   const query = searchParams.get('q') || ''
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
   const [totalDocs, setTotalDocs] = useState(0)
 
   useEffect(() => {
@@ -19,11 +20,15 @@ export default function Search() {
 
   const search = async () => {
     setLoading(true)
+    setError(null)
     try {
       const { data } = await videoService.getAllVideos({ query, limit: 20 })
       setVideos(data.data.docs || [])
       setTotalDocs(data.data.totalDocs || 0)
-    } catch (err) { toast.error(getApiError(err)) }
+    } catch (err) {
+      setError(err)
+      toast.error(getApiError(err))
+    }
     finally { setLoading(false) }
   }
 
@@ -32,7 +37,7 @@ export default function Search() {
       <div className="section-header">
         <div>
           <h1 className="section-title">SEARCH RESULTS</h1>
-          {!loading && (
+          {!loading && !error && (
             <p className="text-dim" style={{ fontSize: 13, marginTop: 4 }}>
               {totalDocs} results for "{query}"
             </p>
@@ -42,6 +47,21 @@ export default function Search() {
 
       {loading ? (
         <div className="page-loader"><span className="spinner" /></div>
+      ) : error ? (
+        <div className="empty-state">
+          <div className="icon">⚠️</div>
+          <h3>Failed to search videos</h3>
+          <p style={{ maxWidth: 400, margin: '0 auto 16px' }}>
+            {getApiError(error) || 'The server took too long to respond. It may still be starting up.'}
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={search}
+            style={{ minWidth: 160 }}
+          >
+            Retry Search
+          </button>
+        </div>
       ) : videos.length === 0 ? (
         <div className="empty-state">
           <FiSearch size={40} style={{ opacity: 0.3 }} />

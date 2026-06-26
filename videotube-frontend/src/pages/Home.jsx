@@ -10,16 +10,31 @@ const CATEGORIES = ['All', 'Gaming', 'Music', 'Sports', 'Tech', 'Travel', 'Food'
 export default function Home() {
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [category, setCategory] = useState('All')
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
+  const [showWakeupMessage, setShowWakeupMessage] = useState(false)
 
   useEffect(() => {
     fetchVideos(1, true)
   }, [category])
 
+  useEffect(() => {
+    let timer
+    if (loading) {
+      timer = setTimeout(() => {
+        setShowWakeupMessage(true)
+      }, 5000)
+    } else {
+      setShowWakeupMessage(false)
+    }
+    return () => clearTimeout(timer)
+  }, [loading])
+
   const fetchVideos = async (p = 1, reset = false) => {
     setLoading(true)
+    setError(null)
     try {
       const params = { page: p, limit: 12, sortBy: 'createdAt', sortType: 'desc' }
       if (category !== 'All') params.tag = category
@@ -29,6 +44,7 @@ export default function Home() {
       setHasMore(data.data.hasNextPage)
       setPage(p)
     } catch (err) {
+      setError(err)
       toast.error(getApiError(err))
     } finally {
       setLoading(false)
@@ -51,7 +67,7 @@ export default function Home() {
       </div>
 
       {/* Hero section */}
-      {page === 1 && !loading && videos.length > 0 && (
+      {page === 1 && !loading && !error && videos.length > 0 && (
         <HeroVideo video={videos[0]} />
       )}
 
@@ -63,8 +79,47 @@ export default function Home() {
 
       {/* Video grid */}
       {loading && videos.length === 0 ? (
-        <div className="video-grid">
-          {Array.from({ length: 8 }).map((_, i) => <VideoSkeleton key={i} />)}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%' }}>
+          {showWakeupMessage && (
+            <div className="wakeup-warning-banner" style={{
+              background: 'rgba(234, 179, 8, 0.1)',
+              border: '1px solid rgba(234, 179, 8, 0.2)',
+              color: '#eab308',
+              padding: '12px 16px',
+              borderRadius: 8,
+              fontSize: 14,
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              alignItems: 'center',
+              margin: '0 auto 16px',
+              maxWidth: 600,
+              width: '100%',
+              boxSizing: 'border-box'
+            }}>
+              <span style={{ fontWeight: 600, fontSize: 15 }}>⏳ Connecting to Server...</span>
+              <span>The backend is hosted on a free tier and is waking up. This first load can take up to a minute. Thank you for your patience!</span>
+            </div>
+          )}
+          <div className="video-grid">
+            {Array.from({ length: 8 }).map((_, i) => <VideoSkeleton key={i} />)}
+          </div>
+        </div>
+      ) : error ? (
+        <div className="empty-state">
+          <div className="icon">⚠️</div>
+          <h3>Failed to load videos</h3>
+          <p style={{ maxWidth: 400, margin: '0 auto 16px' }}>
+            {getApiError(error) || 'The server took too long to respond. It may still be starting up.'}
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={() => fetchVideos(1, true)}
+            style={{ minWidth: 160 }}
+          >
+            Retry Connection
+          </button>
         </div>
       ) : videos.length === 0 ? (
         <div className="empty-state">

@@ -15,6 +15,7 @@ const SORT_OPTIONS = [
 export default function Explore() {
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [sort, setSort] = useState('createdAt-desc')
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
@@ -24,6 +25,7 @@ export default function Explore() {
 
   const fetchVideos = async (p = 1, reset = false) => {
     setLoading(true)
+    setError(null)
     const [sortBy, sortType] = sort.split('-')
     try {
       const { data } = await videoService.getAllVideos({ page: p, limit: 16, sortBy, sortType })
@@ -32,7 +34,10 @@ export default function Explore() {
       setHasMore(data.data.hasNextPage)
       setTotal(data.data.totalDocs || 0)
       setPage(p)
-    } catch (err) { toast.error(getApiError(err)) }
+    } catch (err) {
+      setError(err)
+      toast.error(getApiError(err))
+    }
     finally { setLoading(false) }
   }
 
@@ -42,7 +47,7 @@ export default function Explore() {
       <div className="explore-header">
         <div>
           <h1 className="section-title">EXPLORE</h1>
-          {!loading && (
+          {!loading && !error && (
             <p className="text-dim" style={{ fontSize: 13, marginTop: 4 }}>
               {total.toLocaleString()} videos
             </p>
@@ -76,6 +81,21 @@ export default function Explore() {
               </div>
             </div>
           ))}
+        </div>
+      ) : error ? (
+        <div className="empty-state">
+          <div className="icon">⚠️</div>
+          <h3>Failed to load videos</h3>
+          <p style={{ maxWidth: 400, margin: '0 auto 16px' }}>
+            {getApiError(error) || 'The server took too long to respond. It may still be starting up.'}
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={() => fetchVideos(1, true)}
+            style={{ minWidth: 160 }}
+          >
+            Retry Connection
+          </button>
         </div>
       ) : videos.length === 0 ? (
         <div className="empty-state">
